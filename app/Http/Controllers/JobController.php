@@ -28,6 +28,7 @@ class JobController extends Controller
     {
         $this->authorize('view', $job);
 
+        $job->loadCount(['likes', 'comments']);
         $job->setAttribute('liked', $job->likes()->byUser($request->user())->exists());
 
         return response()->json([
@@ -69,22 +70,24 @@ class JobController extends Controller
     public function like(LikeJobRequest $request, Job $job): JsonResponse
     {
         $job->likes()->firstOrCreate(['user_id' => $request->user()->id]);
+        $job->loadCount('likes');
 
         return response()->json([
             'message' => 'Job liked successfully.',
             'liked' => true,
-            'like_count' => (int) $job->refresh()->likes_count,
+            'like_count' => (int) $job->likes_count,
         ]);
     }
 
     public function unlike(LikeJobRequest $request, Job $job): JsonResponse
     {
         $job->likes()->byUser($request->user())->first()?->delete();
+        $job->loadCount('likes');
 
         return response()->json([
             'message' => 'Job unliked successfully.',
             'liked' => false,
-            'like_count' => (int) $job->refresh()->likes_count,
+            'like_count' => (int) $job->likes_count,
         ]);
     }
 
