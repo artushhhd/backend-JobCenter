@@ -18,7 +18,7 @@ return new class extends Migration
 
             $table->enum('status', ['job_seeker', 'job_poster'])->default('job_seeker');
 
-            $table->enum('role', ['user', 'moderator', 'admin'])->default('user');
+            $table->enum('role', ['user', 'moderator', 'admin', 'super_admin'])->default('user');
 
             $table->timestamps();
         });

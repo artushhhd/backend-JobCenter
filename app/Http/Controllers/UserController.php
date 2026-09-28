@@ -108,12 +108,7 @@ class UserController extends Controller
 
     public function destroyCv(Request $request): JsonResponse
     {
-        $cv = $request->user()->cv;
-
-        if ($cv) {
-            Storage::disk('local')->delete($cv->filename);
-            $cv->delete();
-        }
+        $request->user()->cv?->delete();
 
         return response()->json([
             'message' => 'Resume removed.',

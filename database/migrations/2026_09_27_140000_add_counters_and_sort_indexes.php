@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\ManagesTableIndexes;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -7,6 +8,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use ManagesTableIndexes;
+
     private string $table = 'job_listings';
 
     public function up(): void
@@ -49,31 +52,5 @@ return new class extends Migration
     private function backfillCounters(): void
     {
         DB::statement('update job_listings set comments_count = (select count(*) from comments where comments.job_id = job_listings.id), likes_count = (select count(*) from likes where likes.job_id = job_listings.id)');
-    }
-
-    private function createIndex(string $table, array $columns, string $name): void
-    {
-        if ($this->hasIndex($table, $name)) {
-            return;
-        }
-
-        Schema::table($table, fn (Blueprint $blueprint) => $blueprint->index($columns, $name));
-    }
-
-    private function dropIndex(string $table, string $name): void
-    {
-        if (! $this->hasIndex($table, $name)) {
-            return;
-        }
-
-        Schema::table($table, fn (Blueprint $blueprint) => $blueprint->dropIndex($name));
-    }
-
-    private function hasIndex(string $table, string $name): bool
-    {
-        return DB::select(
-            'select 1 from information_schema.STATISTICS where TABLE_SCHEMA = database() and TABLE_NAME = ? and INDEX_NAME = ? limit 1',
-            [$table, $name]
-        ) !== [];
     }
 };

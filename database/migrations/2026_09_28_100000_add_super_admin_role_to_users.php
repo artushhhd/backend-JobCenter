@@ -11,9 +11,7 @@ return new class extends Migration
 
     public function up(): void
     {
-        if (! $this->roleSupportsSuperAdmin()) {
-            DB::statement('alter table users modify role '.self::ENUM_WITH_SUPER);
-        }
+        $this->widenRoleColumn();
 
         $this->promoteFirstSuperAdmin();
     }
@@ -22,7 +20,18 @@ return new class extends Migration
     {
         DB::table('users')->where('role', 'super_admin')->update(['role' => 'admin']);
 
-        DB::statement('alter table users modify role '.self::ENUM_WITHOUT_SUPER);
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('alter table users modify role '.self::ENUM_WITHOUT_SUPER);
+        }
+    }
+
+    private function widenRoleColumn(): void
+    {
+        if (DB::getDriverName() !== 'mysql' || $this->roleSupportsSuperAdmin()) {
+            return;
+        }
+
+        DB::statement('alter table users modify role '.self::ENUM_WITH_SUPER);
     }
 
     private function roleSupportsSuperAdmin(): bool
