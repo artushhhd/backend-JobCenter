@@ -1,19 +1,171 @@
 # JobCenter API
 
-Laravel 13 REST API for the JobCenter job board. The Next.js client lives in a separate
-repository: https://github.com/artushhhd/frontend-JobCenter
+Laravel 13 REST API for a job board with authentication, role-based authorization, job listings, comments, likes, filtering, pagination, and private CV storage.
 
-Every user carries two flags:
+**Frontend:** https://github.com/artushhhd/frontend-JobCenter
 
-- `status` — `job_seeker` or `job_poster`. Only job posters can publish listings.
-- `role` — `user`, `moderator`, `admin` or `super_admin`. Anything above `user` opens the
-  `/api/settings` routes.
+## Overview
 
-## Requirements
+JobCenter is a full-stack job board built as two independent applications. This repository contains the backend API responsible for business rules, authentication, authorization, validation, persistence, and file handling.
 
-PHP 8.3, Composer, MySQL or SQLite.
+The API uses Laravel Sanctum for token authentication and Laravel Policies/Form Requests to keep authorization and validation close to the HTTP boundary.
 
-## Setup
+## Tech Stack
+
+- PHP 8.3
+- Laravel 13
+- Laravel Sanctum
+- Eloquent ORM
+- MySQL / SQLite
+- PHPUnit
+- Laravel Pint
+- REST API
+
+## Core Features
+
+### Authentication
+
+- Registration, login, logout
+- Sanctum bearer-token authentication
+- Configurable token expiration
+- Authenticated profile endpoint
+- Token-specific logout
+- Rate limiting on write-heavy endpoints
+
+### Authorization
+
+Users have two independent access attributes:
+
+- `status`: `job_seeker` or `job_poster`
+- `role`: `user`, `moderator`, `admin`, or `super_admin`
+
+Resource authorization is enforced by the API. Job and comment ownership is checked through Laravel Policies rather than relying on frontend visibility.
+
+### Job Listings
+
+- Create, read, update, and delete jobs
+- Owner/staff authorization
+- Search by title, company, and skills
+- Location filtering with remote-job support
+- Sorting by recent or salary
+- Featured-first ordering
+- Paginated results
+
+### Social Features
+
+- Like and unlike jobs
+- View liked jobs
+- Paginated comments
+- Comment ownership and staff authorization
+
+### CV Storage
+
+- Upload one CV per user
+- PDF, DOC, and DOCX support
+- Maximum file size of 5 MB
+- Private storage outside the public web root
+- Ownership checks before download
+- Replace or delete the current CV
+
+### Staff Endpoints
+
+Staff users can access:
+
+- All job listings, including drafts
+- Paginated user management
+- User filtering by search and role
+- User deletion
+
+## API Surface
+
+### Authentication
+
+```http
+POST /api/register
+POST /api/login
+POST /api/logout
+GET  /api/profile
+```
+
+### Jobs
+
+```http
+GET    /api/jobs
+POST   /api/jobs
+GET    /api/jobs/{job}
+PUT    /api/jobs/{job}
+PATCH  /api/jobs/{job}
+DELETE /api/jobs/{job}
+
+POST   /api/jobs/{job}/like
+DELETE /api/jobs/{job}/like
+GET    /api/likes
+```
+
+### Comments
+
+```http
+GET    /api/jobs/{job}/comments
+POST   /api/jobs/{job}/comments
+PUT    /api/comments/{comment}
+PATCH  /api/comments/{comment}
+DELETE /api/comments/{comment}
+```
+
+### CV
+
+```http
+POST   /api/profile/cv
+GET    /api/profile/cv
+DELETE /api/profile/cv
+```
+
+## Validation & Error Handling
+
+The API uses Laravel Form Requests for input validation.
+
+- `401 Unauthorized` — authentication is missing or invalid
+- `403 Forbidden` — authenticated user is not authorized
+- `422 Unprocessable Entity` — validation failed
+
+Validation errors are returned in a structured `errors` object consumed by the frontend.
+
+Write operations are protected by route-specific rate limits.
+
+## Architecture
+
+The application separates HTTP concerns, validation, authorization, persistence, and routing.
+
+```text
+app/
+├── Http/
+│   ├── Controllers/
+│   ├── Middleware/
+│   └── Requests/
+├── Models/
+└── Policies/
+
+database/
+├── factories/
+├── migrations/
+└── seeders/
+
+routes/
+└── api.php
+
+tests/
+└── Feature/
+```
+
+## Local Development
+
+### Requirements
+
+- PHP 8.3+
+- Composer
+- MySQL or SQLite
+
+### Installation
 
 ```bash
 composer install
@@ -21,89 +173,50 @@ copy .env.example .env
 php artisan key:generate
 ```
 
-Pick the database in `.env`. For SQLite set `DB_CONNECTION=sqlite` and create an empty
-`database/database.sqlite`. For MySQL create the schema and fill in `DB_DATABASE`,
-`DB_USERNAME`, `DB_PASSWORD`.
+Configure the database in `.env`.
+
+For SQLite:
+
+```text
+DB_CONNECTION=sqlite
+```
+
+Create an empty `database/database.sqlite` file before running migrations.
+
+For MySQL, configure `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD`.
+
+Run migrations and seed development data:
 
 ```bash
 php artisan migrate --seed
 php artisan serve
 ```
 
-The API is then on `http://127.0.0.1:8000` and every route is prefixed with `/api`.
+The API runs at:
 
-`UserSeeder` creates demo accounts that all share the password `password123`
-(alex.morgan@example.com is a job seeker, olivia.park@example.com posts jobs), and
-`JobSeeder` fills the feed with sample listings.
-
-## CORS
-
-`FRONTEND_URL` lists the allowed origins, comma separated:
-
+```text
+http://127.0.0.1:8000
 ```
+
+All API routes are prefixed with `/api`.
+
+### CORS
+
+Configure allowed frontend origins with:
+
+```env
 FRONTEND_URL=http://localhost:3000,http://127.0.0.1:3000
 ```
 
-## Tokens
-
-`POST /api/register` and `POST /api/login` return a plaintext Sanctum token. Send it back as
-`Authorization: Bearer <token>` — everything below `auth:sanctum` needs it. Lifetime comes
-from `SANCTUM_TOKEN_EXPIRATION_MINUTES` (a week by default) and `sanctum:prune-expired`
-runs once a day. `POST /api/logout` deletes only the token that made the request, so the
-other devices of the same user stay signed in.
-
-## Routes
-
-Auth
-
-- `POST /api/register` — name, email, password, status
-- `POST /api/login`
-- `POST /api/logout`
-- `GET /api/profile` — the current user plus his resume metadata
-
-Jobs
-
-- `GET /api/jobs` — published listings, 10 per page
-- `POST /api/jobs` — job posters only
-- `GET|PUT|PATCH|DELETE /api/jobs/{job}` — owner or staff, decided in `JobPolicy`
-- `POST|DELETE /api/jobs/{job}/like`, `GET /api/likes`
-
-Comments
-
-- `GET|POST /api/jobs/{job}/comments` — 20 per page
-- `PUT|PATCH|DELETE /api/comments/{comment}` — author or staff
-
-Resume
-
-- `POST /api/profile/cv` — one PDF/DOC/DOCX up to 5 MB, replaces the previous file
-- `GET /api/profile/cv` — download
-- `DELETE /api/profile/cv`
-
-The file goes to the private local disk (`storage/app/private`), never under `/public`, and
-the download route checks ownership before streaming it.
-
-Staff
-
-- `GET /api/settings/jobs` — every listing, drafts included
-- `GET /api/settings/users` — 15 per page, `q` and `role` filters
-- `DELETE /api/settings/users/{user}`
-
-## Listing filters
-
-`GET /api/jobs` takes `q` (matches title, company and the skills json), `location`
-(remote jobs always stay in the result), `sort` (`recent` or `salary`, otherwise featured
-first and then newest) and `page`.
-
-## Errors
-
-Form Requests do the validation, so a bad payload answers 422 with an `errors` object and
-the client prints those strings next to the fields. A wrong token answers 401, a denied
-action 403. Writes are throttled: 5/min on login, 10/min on register, 30/min on job,
-comment, like, cv and user-delete routes.
-
-## Tests and formatting
+### Testing
 
 ```bash
 php artisan test
 vendor/bin/pint
 ```
+
+## Project Structure
+
+The project follows Laravel conventions with dedicated controllers, Form Requests, Policies, Eloquent models, migrations, seeders, and feature tests.
+
+The frontend is maintained separately so the API and client can be developed and deployed independently.
