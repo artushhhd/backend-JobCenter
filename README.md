@@ -67,6 +67,16 @@ Resource authorization is enforced by the API. Job and comment ownership is chec
 - Ownership checks before download
 - Replace or delete the current CV
 
+### screenshot
+<img width="1919" height="1079" alt="register" src="https://github.com/user-attachments/assets/c96eb5cf-242c-4f0f-abdb-24c06e43531d" />
+
+<img width="1919" height="1079" alt="login" src="https://github.com/user-attachments/assets/c5a0cead-70af-4247-955a-0a8c6e49f665" />
+
+<img width="1900" height="909" alt="profile" src="https://github.com/user-attachments/assets/0d9f5dc8-e200-4c77-b178-83beb9976c79" />
+
+<img width="1901" height="1079" alt="job" src="https://github.com/user-attachments/assets/cb65d2e9-4fe7-4950-a14c-c6f56ee5e9e0" />
+
+
 ### Staff Endpoints
 
 Staff users can access:
