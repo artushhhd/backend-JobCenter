@@ -1,14 +1,20 @@
 # JobCenter API
 
-Laravel 13 REST API for a job board with authentication, role-based authorization, job listings, comments, likes, filtering, pagination, and private CV storage.
+Laravel 13 REST API for a job board. The backend is the source of truth for authentication, authorization, validation, job data, comments, likes, and private CV files.
 
 **Frontend:** https://github.com/artushhhd/frontend-JobCenter
 
-## Overview
+## What this project demonstrates
 
-JobCenter is a full-stack job board built as two independent applications. This repository contains the backend API responsible for business rules, authentication, authorization, validation, persistence, and file handling.
-
-The API uses Laravel Sanctum for token authentication and Laravel Policies/Form Requests to keep authorization and validation close to the HTTP boundary.
+- REST API design with Laravel 13
+- Sanctum bearer-token authentication
+- Server-side authorization with Policies
+- Form Request validation
+- Separate job-seeker / job-poster status and staff roles
+- Search, filtering, sorting, and pagination
+- Ownership rules for jobs, comments, and CV files
+- Private document storage
+- Feature testing and API error handling
 
 ## Tech Stack
 
@@ -19,119 +25,68 @@ The API uses Laravel Sanctum for token authentication and Laravel Policies/Form 
 - MySQL / SQLite
 - PHPUnit
 - Laravel Pint
-- REST API
 
-## Core Features
-
-### Authentication
-
-- Registration, login, logout
-- Sanctum bearer-token authentication
-- Configurable token expiration
-- Authenticated profile endpoint
-- Token-specific logout
-- Rate limiting on write-heavy endpoints
-
-### Authorization
+## Domain Model
 
 Users have two independent access attributes:
 
-- `status`: `job_seeker` or `job_poster`
-- `role`: `user`, `moderator`, `admin`, or `super_admin`
+- status: job_seeker or job_poster
+- role: user, moderator, admin, or super_admin
 
-Resource authorization is enforced by the API. Job and comment ownership is checked through Laravel Policies rather than relying on frontend visibility.
+The API does not trust frontend visibility for security. Resource access is checked server-side with authentication middleware and Policies.
 
-### Job Listings
+## Features
 
-- Create, read, update, and delete jobs
+### Authentication & Access
+
+- Registration, login, logout
+- Sanctum bearer tokens
+- Configurable token expiration
+- Authenticated profile
+- Token-specific logout
+- Rate limiting on write-heavy endpoints
+
+### Jobs
+
+- Create, read, update, delete
 - Owner/staff authorization
 - Search by title, company, and skills
-- Location filtering with remote-job support
-- Sorting by recent or salary
+- Location and remote-job filtering
+- Sort by recent or salary
 - Featured-first ordering
-- Paginated results
+- Pagination
 
-### Social Features
+### Comments & Likes
 
-- Like and unlike jobs
-- View liked jobs
+- Like / unlike jobs
+- List liked jobs
 - Paginated comments
-- Comment ownership and staff authorization
+- Comment ownership checks
+- Staff authorization
 
 ### CV Storage
 
-- Upload one CV per user
-- PDF, DOC, and DOCX support
-- Maximum file size of 5 MB
+- One active CV per user
+- PDF, DOC, and DOCX
+- Maximum size: 5 MB
 - Private storage outside the public web root
-- Ownership checks before download
-- Replace or delete the current CV
-
-## Screenshots
-
-These screenshots show the Next.js frontend consuming this Laravel API.
-
-### Authentication
-
-<img width="1919" height="1079" alt="Register" src="https://github.com/user-attachments/assets/c96eb5cf-242c-4f0f-abdb-24c06e43531d" />
-
-<img width="1919" height="1079" alt="Login" src="https://github.com/user-attachments/assets/c5a0cead-70af-4247-955a-0a8c6e49f665" />
-
-### User Profile
-
-<img width="1900" height="909" alt="Profile" src="https://github.com/user-attachments/assets/0d9f5dc8-e200-4c77-b178-83beb9976c79" />
-
-### Job Details
-
-<img width="1901" height="1079" alt="Job details" src="https://github.com/user-attachments/assets/cb65d2e9-4fe7-4950-a14c-c6f56ee5e9e0" />
-
-**Frontend repository:** https://github.com/artushhhd/frontend-JobCenter
-
-## API Flow
-
-```text
-Next.js Frontend
-       │
-       │ HTTP / JSON
-       ▼
-Laravel REST API
-       │
-       ├── Sanctum Authentication
-       ├── Form Requests
-       ├── Policies
-       ├── Controllers
-       └── API Resources
-       │
-       ▼
-   Eloquent ORM
-       │
-       ▼
-     MySQL
-```
-
-### Staff Endpoints
-
-Staff users can access:
-
-- All job listings, including drafts
-- Paginated user management
-- User filtering by search and role
-- User deletion
+- Ownership checks before access
+- Replace and delete operations
 
 ## API Surface
 
 ### Authentication
 
-```http
+~~~http
 POST /api/register
 POST /api/login
 POST /api/logout
 GET  /api/profile
-```
+~~~
 
 ### Jobs
 
-```http
+~~~http
 GET    /api/jobs
 POST   /api/jobs
 GET    /api/jobs/{job}
@@ -142,43 +97,64 @@ DELETE /api/jobs/{job}
 POST   /api/jobs/{job}/like
 DELETE /api/jobs/{job}/like
 GET    /api/likes
-```
+~~~
 
 ### Comments
 
-```http
+~~~http
 GET    /api/jobs/{job}/comments
 POST   /api/jobs/{job}/comments
 PUT    /api/comments/{comment}
 PATCH  /api/comments/{comment}
 DELETE /api/comments/{comment}
-```
+~~~
 
 ### CV
 
-```http
+~~~http
 POST   /api/profile/cv
 GET    /api/profile/cv
 DELETE /api/profile/cv
-```
+~~~
 
-## Validation & Error Handling
+## Error Handling
 
-The API uses Laravel Form Requests for input validation.
+| Status | Meaning |
+|---|---|
+| 401 | Missing or invalid authentication |
+| 403 | Authenticated but not authorized |
+| 422 | Validation failed |
 
-- `401 Unauthorized` — authentication is missing or invalid
-- `403 Forbidden` — authenticated user is not authorized
-- `422 Unprocessable Entity` — validation failed
-
-Validation errors are returned in a structured `errors` object consumed by the frontend.
-
-Write operations are protected by route-specific rate limits.
+Validation failures are returned in a structured errors object for frontend consumption.
 
 ## Architecture
 
-The application separates HTTP concerns, validation, authorization, persistence, and routing.
+~~~text
+HTTP Request
+    |
+    v
+Routes / Middleware
+    |
+    +-- Sanctum Authentication
+    +-- Rate Limiting
+    |
+    v
+Controller
+    |
+    +-- Form Request -> Validation
+    +-- Policy -> Authorization
+    +-- API Resource -> Response
+    |
+    v
+Eloquent Models
+    |
+    v
+MySQL / SQLite
+~~~
 
-```text
+Repository structure follows Laravel conventions:
+
+~~~text
 app/
 ├── Http/
 │   ├── Controllers/
@@ -197,7 +173,19 @@ routes/
 
 tests/
 └── Feature/
-```
+~~~
+
+## Screenshots
+
+The UI is implemented in the separate Next.js frontend.
+
+<img width="1919" height="1079" alt="Register" src="https://github.com/user-attachments/assets/c96eb5cf-242c-4f0f-abdb-24c06e43531d" />
+
+<img width="1919" height="1079" alt="Login" src="https://github.com/user-attachments/assets/c5a0cead-70af-4247-955a-0a8c6e49f665" />
+
+<img width="1900" height="909" alt="Profile" src="https://github.com/user-attachments/assets/0d9f5dc8-e200-4c77-b178-83beb9976c79" />
+
+<img width="1901" height="1079" alt="Job details" src="https://github.com/user-attachments/assets/cb65d2e9-4fe7-4950-a14c-c6f56ee5e9e0" />
 
 ## Local Development
 
@@ -209,56 +197,42 @@ tests/
 
 ### Installation
 
-```bash
+~~~bash
 composer install
 copy .env.example .env
 php artisan key:generate
-```
+~~~
 
-Configure the database in `.env`.
+Configure the database in .env.
 
 For SQLite:
 
-```text
+~~~text
 DB_CONNECTION=sqlite
-```
+~~~
 
-Create an empty `database/database.sqlite` file before running migrations.
+Create an empty database/database.sqlite file, then run:
 
-For MySQL, configure `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD`.
-
-Run migrations and seed development data:
-
-```bash
+~~~bash
 php artisan migrate --seed
 php artisan serve
-```
+~~~
 
-The API runs at:
+The API runs at http://127.0.0.1:8000.
 
-```text
-http://127.0.0.1:8000
-```
+For the Next.js client, configure CORS with:
 
-All API routes are prefixed with `/api`.
-
-### CORS
-
-Configure allowed frontend origins with:
-
-```env
+~~~env
 FRONTEND_URL=http://localhost:3000,http://127.0.0.1:3000
-```
+~~~
 
-### Testing
+### Quality Checks
 
-```bash
+~~~bash
 php artisan test
 vendor/bin/pint
-```
+~~~
 
-## Project Structure
+## Related Repository
 
-The project follows Laravel conventions with dedicated controllers, Form Requests, Policies, Eloquent models, migrations, seeders, and feature tests.
-
-The frontend is maintained separately so the API and client can be developed and deployed independently.
+**Next.js frontend:** https://github.com/artushhhd/frontend-JobCenter
