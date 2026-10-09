@@ -1,82 +1,97 @@
 # JobCenter API
 
-Laravel 13 REST API for a job board, focused on authentication, authorization, validation, private CV storage, search/filtering, pagination, and testable API workflows.
+Laravel REST API for a job-board application. The project demonstrates authentication, server-side authorization, request validation, job discovery, user interactions, and private CV management.
 
-**Frontend:** https://github.com/artushhhd/frontend-JobCenter
+**Frontend:** [frontend-JobCenter](https://github.com/artushhhd/frontend-JobCenter)
 
-## Highlights
+## Features
 
-- REST API with Laravel 13
-- Sanctum bearer-token authentication
-- Policy-based server-side authorization
-- Form Request validation
-- Job seeker / job poster domain model
-- Staff roles
-- Search, filtering, sorting, pagination
-- Likes and paginated comments
-- Private CV storage with ownership checks
-- Feature tests
-- Structured API errors
+- Laravel Sanctum bearer-token authentication
+- Policy-based authorization and resource-ownership checks
+- Form Request validation and structured API responses
+- Job seeker / job poster account status
+- Staff roles and protected moderation workflows
+- Search, filtering, sorting, and pagination
+- Job likes and paginated comments
+- Private CV upload and retrieval workflows
+- PHPUnit feature tests
 
-## Stack
+## Technology
 
-PHP 8.3 · Laravel 13 · Sanctum · Eloquent · MySQL / SQLite · PHPUnit · Laravel Pint
+PHP 8.3 · Laravel 13 · Sanctum · Eloquent ORM · MySQL / SQLite · PHPUnit · Laravel Pint
 
-## Domain Model
+## Domain and Security
 
-- **Status:** `job_seeker` / `job_poster`
-- **Role:** `user` / `moderator` / `admin` / `super_admin`
+- **Account status:** `job_seeker`, `job_poster`
+- **Staff roles:** `user`, `moderator`, `admin`, `super_admin`
 
-Authorization is enforced server-side. Frontend visibility is never treated as a security boundary.
+Authorization is enforced by the API. Hiding a button in the frontend is not considered a security control. Private CV files should remain behind authenticated, ownership-checked endpoints.
 
-## Architecture
+## Request Flow
 
 ```text
-HTTP Request
- -> Middleware / Sanctum
- -> Controller
- -> Form Request
- -> Policy
- -> API Resource
- -> Eloquent
- -> Database
+HTTP request
+  -> route and middleware
+  -> authentication
+  -> Form Request validation
+  -> policy / authorization
+  -> controller and API resource
+  -> Eloquent
+  -> database or private storage
 ```
 
-## API
+## Main API Routes
 
-```http
-POST /api/register
-POST /api/login
-POST /api/logout
-GET  /api/profile
-GET /api/jobs
-POST /api/jobs
-GET /api/jobs/{job}
-PUT /api/jobs/{job}
-DELETE /api/jobs/{job}
-POST /api/jobs/{job}/like
-DELETE /api/jobs/{job}/like
-GET /api/likes
-GET /api/jobs/{job}/comments
-POST /api/jobs/{job}/comments
-POST /api/profile/cv
-GET /api/profile/cv
-DELETE /api/profile/cv
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/register` | Register |
+| POST | `/api/login` | Authenticate |
+| POST | `/api/logout` | Revoke current token |
+| GET | `/api/profile` | Get current profile |
+| GET | `/api/jobs` | Browse jobs |
+| POST | `/api/jobs` | Create a job |
+| GET | `/api/jobs/{job}` | View a job |
+| PUT | `/api/jobs/{job}` | Update a job |
+| DELETE | `/api/jobs/{job}` | Delete a job |
+| POST | `/api/jobs/{job}/like` | Like a job |
+| DELETE | `/api/jobs/{job}/like` | Remove a like |
+| GET | `/api/likes` | List liked jobs |
+| GET | `/api/jobs/{job}/comments` | List job comments |
+| POST | `/api/jobs/{job}/comments` | Add a comment |
+| POST | `/api/profile/cv` | Upload CV |
+| GET | `/api/profile/cv` | Retrieve current CV |
+| DELETE | `/api/profile/cv` | Delete current CV |
+
+## Requirements
+
+- PHP version supported by the project's Laravel dependencies
+- Composer
+- MySQL or SQLite
+- Node.js and npm are needed for the separate frontend
+
+## Run Locally
+
+Run these commands from the backend repository root:
+
+```bash
+composer install
 ```
+
+Create your local environment file by copying `.env.example` to `.env` (use `cp` on macOS/Linux or `copy` in Windows Command Prompt), then configure your database connection.
+
+```bash
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
+```
+
+The API is served at `http://127.0.0.1:8000` by default. Keep local credentials in `.env`; never commit secrets.
 
 ## Quality Checks
 
 ```bash
 php artisan test
-vendor/bin/pint
+vendor/bin/pint --test
 ```
 
-## Run Locally
-
-```bash
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate --seed
-php artisan serve
-```
+See the [frontend README](https://github.com/artushhhd/frontend-JobCenter) for client setup.
